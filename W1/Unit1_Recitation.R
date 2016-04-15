@@ -23,10 +23,10 @@
 # Create a subset of the foods with sodium content above 10,000mg
   HighSodium = subset(USDA, Sodium>10000)
 # Count the number of rows, or observations
-nrow(HighSodium)
+  nrow(HighSodium)
 # Output names of the foods with high sodium content
   HighSodium$Description
-# Finding the index of CAVIAR in the dataset
+#Finding the index of CAVIAR in the dataset
   match("CAVIAR", USDA$Description)
 # Find amount of sodium in caviar
   USDA$Sodium[4154]

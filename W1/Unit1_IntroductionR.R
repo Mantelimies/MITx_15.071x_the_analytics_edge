@@ -87,6 +87,10 @@ Outliers = subset(WHO, GNI > 10000 & FertilityRate > 2.5)
 nrow(Outliers)
 Outliers[c("Country","GNI","FertilityRate")]
 
+# Quiz questions
+mean(WHO$Over60)
+WHO$Country[which.min(WHO$Over60)]
+WHO$Country[which.max(WHO$LiteracyRate)]
 
 # VIDEO 6
 
@@ -104,4 +108,5 @@ table(WHO$Region)
 tapply(WHO$Over60, WHO$Region, mean)
 tapply(WHO$LiteracyRate, WHO$Region, min)
 tapply(WHO$LiteracyRate, WHO$Region, min, na.rm=TRUE)
- 
+#QUIZ
+tapply(WHO$ChildMortality, WHO$Region, min)
