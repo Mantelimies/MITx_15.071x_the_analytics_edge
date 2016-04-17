@@ -154,7 +154,7 @@ abline(v=as.Date(c("1983-01-01")), lwd=2)
 ```
 
 
-## Problem 3.1 - Visualizing Stock Dynamics 1995-2005
+### Problem 3.1 - Visualizing Stock Dynamics 1995-2005
 
 (1 point possible)
 Let's take a look at how the stock prices changed from 1995-2005 for all five companies. In your R console, start by typing the following plot command:
@@ -178,4 +178,137 @@ ggplot(data = CocaCola, aes(x = Date, y = StockPrice)) + geom_line(data = CocaCo
 
 ```
 
+### Problem 3.2 - Visualizing Stock Dynamics 1995-2005
+
+
+Which stock reaches the highest value in the time period 1995-2005?
+
+```{r}
+
+library(ggplot2)
+ggplot(data = CocaCola, aes(x = Date, y = StockPrice)) + geom_line(data = CocaCola[301:432,], aes (colour = "CocaCola")) + geom_line(data = ProcterGamble[301:432,], aes (colour = "ProcterGamble")) + geom_line(data = GE[301:432,], aes (colour = "GE")) + geom_line(data = IBM[301:432,], aes (colour = "IBM")) + geom_line(data = Boeing[301:432,], aes (colour = "Boeing")) + scale_color_manual("",breaks = c("CocaCola","ProcterGamble","GE","IBM","Boeing"), values = c("blue", "red","green","skyblue","tan")) + geom_vline(xintercept = as.numeric(as.Date("1997-10-01")))
+```
+
+In the last two years of this time period (2004 and 2005) which stock seems to be performing the best, in terms of increasing stock price?
+
+
+### Problem 3.3 - Visualizing Stock Dynamics 1995-2005
+
+
+In October of 1997, there was a global stock market crash that was caused by an economic crisis in Asia. Comparing September 1997 to November 1997, which companies saw a decreasing trend in their stock price? (Select all that apply.)
+
+```{r}
+ggplot(data = CocaCola, aes(x = Date, y = StockPrice)) + geom_line(data = CocaCola[301:432,], aes (colour = "CocaCola")) + geom_line(data = ProcterGamble[301:432,], aes (colour = "ProcterGamble")) + geom_line(data = GE[301:432,], aes (colour = "GE")) + geom_line(data = IBM[301:432,], aes (colour = "IBM")) + geom_line(data = Boeing[301:432,], aes (colour = "Boeing")) + scale_color_manual("",breaks = c("CocaCola","ProcterGamble","GE","IBM","Boeing"), values = c("blue", "red","green","skyblue","tan")) + geom_vline(xintercept = as.numeric(as.Date("1997-11-30"))) + geom_vline(xintercept = as.numeric(as.Date("1997-09-01")))
+```
+
+
+### Problem 3.4 - Visualizing Stock Dynamics 1995-2005
+
+
+In the last two years of this time period (2004 and 2005) which stock seems to be performing the best, in terms of increasing stock price?
+
+```{r}
+ggplot(data = CocaCola, aes(x = Date, y = StockPrice)) + geom_line(data = CocaCola[301:432,], aes (colour = "CocaCola")) + geom_line(data = ProcterGamble[301:432,], aes (colour = "ProcterGamble")) + geom_line(data = GE[301:432,], aes (colour = "GE")) + geom_line(data = IBM[301:432,], aes (colour = "IBM")) + geom_line(data = Boeing[301:432,], aes (colour = "Boeing")) + scale_color_manual("",breaks = c("CocaCola","ProcterGamble","GE","IBM","Boeing"), values = c("blue", "red","green","skyblue","tan")) + geom_vline(xintercept = as.numeric(as.Date("2004-01-01"))) + geom_vline(xintercept = as.numeric(as.Date("2005-12-31")))
+```
+
+
+
+### Problem 4.1 - Monthly Trends
+
+(1 point possible)
+Lastly, let's see if stocks tend to be higher or lower during certain months. Use the tapply command to calculate the mean stock price of IBM, sorted by months. To sort by months, use
+
+months(IBM$Date)
+
+as the second argument of the tapply function.
+
+For IBM, compare the monthly averages to the overall average stock price. In which months has IBM historically had a higher stock price (on average)? Select all that apply.
+
+```{r}
+monthPriceIBM <- tapply(IBM$StockPrice, months(IBM$Date), mean)/mean((IBM$StockPrice))
+monthPriceIBM[monthPriceIBM>1]
+```
+
+
+Problem 4.2 - Monthly Trends
+
+(1 point possible)
+Repeat the tapply function from the previous problem for each of the other four companies, and use the output to answer the remaining questions.
+
+General Electric and Coca-Cola both have their highest average stock price in the same month. Which month is this?
+```{r}
+monthPriceGE <- tapply(GE$StockPrice, months(GE$Date), mean)/mean((GE$StockPrice))
+monthPriceGE
+monthPriceGE[which.max(monthPriceGE)]
+
+monthPriceCocaCola <- tapply(CocaCola$StockPrice, months(CocaCola$Date), mean)/mean((CocaCola$StockPrice))
+monthPriceCocaCola
+monthPriceCocaCola[which.max(monthPriceCocaCola)]
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Assingment III: DEMOGRAPHICS AND EMPLOYMENT IN THE UNITED STATES
+
+In the wake of the Great Recession of 2009, there has been a good deal of focus on employment statistics, one of the most important metrics policymakers use to gauge the overall strength of the economy. In the United States, the government measures unemployment using the Current Population Survey (CPS), which collects demographic and employment information from a wide range of Americans each month. In this exercise, we will employ the topics reviewed in the lectures as well as a few new techniques using the September 2013 version of this rich, nationally representative dataset (available online).
+
+The observations in the dataset represent people surveyed in the September 2013 CPS who actually completed a survey. While the full dataset has 385 variables, in this exercise we will use a more compact version of the dataset, CPSData.csv, which has the following variables:
+
+PeopleInHousehold: The number of people in the interviewee's household.
+
+Region: The census region where the interviewee lives.
+
+State: The state where the interviewee lives.
+
+MetroAreaCode: A code that identifies the metropolitan area in which the interviewee lives (missing if the interviewee does not live in a metropolitan area). The mapping from codes to names of metropolitan areas is provided in the file MetroAreaCodes.csv.
+
+Age: The age, in years, of the interviewee. 80 represents people aged 80-84, and 85 represents people aged 85 and higher.
+
+Married: The marriage status of the interviewee.
+
+Sex: The sex of the interviewee.
+
+Education: The maximum level of education obtained by the interviewee.
+
+Race: The race of the interviewee.
+
+Hispanic: Whether the interviewee is of Hispanic ethnicity.
+
+CountryOfBirthCode: A code identifying the country of birth of the interviewee. The mapping from codes to names of countries is provided in the file CountryCodes.csv.
+
+Citizenship: The United States citizenship status of the interviewee.
+
+EmploymentStatus: The status of employment of the interviewee.
+
+Industry: The industry of employment of the interviewee (only available if they are employed).
+
+Problem 1.1 - Loading and Summarizing the Dataset
+
+(1 point possible)
+Load the dataset from CPSData.csv into a data frame called CPS, and view the dataset with the summary() and str() commands.
+
+How many interviewees are in the dataset?
+
+
+
+
+```{r}
+#Again, let's start by emptying the workspace:
+rm (list = ls(all=T))
+``` 
 
