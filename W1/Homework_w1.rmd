@@ -256,13 +256,6 @@ monthPriceCocaCola[which.max(monthPriceCocaCola)]
 
 
 
-
-
-
-
-
-
-
 ## Assingment III: DEMOGRAPHICS AND EMPLOYMENT IN THE UNITED STATES
 
 In the wake of the Great Recession of 2009, there has been a good deal of focus on employment statistics, one of the most important metrics policymakers use to gauge the overall strength of the economy. In the United States, the government measures unemployment using the Current Population Survey (CPS), which collects demographic and employment information from a wide range of Americans each month. In this exercise, we will employ the topics reviewed in the lectures as well as a few new techniques using the September 2013 version of this rich, nationally representative dataset (available online).
@@ -297,18 +290,95 @@ EmploymentStatus: The status of employment of the interviewee.
 
 Industry: The industry of employment of the interviewee (only available if they are employed).
 
-Problem 1.1 - Loading and Summarizing the Dataset
+###Problem 1.1 - Loading and Summarizing the Dataset
 
 (1 point possible)
 Load the dataset from CPSData.csv into a data frame called CPS, and view the dataset with the summary() and str() commands.
 
 How many interviewees are in the dataset?
 
+###Problem 1.2 - Loading and Summarizing the Dataset
 
+
+Among the interviewees with a value reported for the Industry variable, what is the most common industry of employment? Please enter the name exactly how you see it.
 
 
 ```{r}
 #Again, let's start by emptying the workspace:
 rm (list = ls(all=T))
 ``` 
+
+
+```{r}
+CPS = read.csv("CPSData.csv")
+str(CPS)
+summary(CPS)
+``` 
+
+
+
+
+###Problem 1.3 - Loading and Summarizing the Dataset
+
+Recall from the homework assignment "The Analytical Detective" that you can call the sort() function on the output of the table() function to obtain a sorted breakdown of a variable. For instance, sort(table(CPS$Region)) sorts the regions by the number of interviewees from that region.
+
+Which state has the fewest interviewees?
+
+```{r}
+sort(table(CPS$State))
+``` 
+
+
+
+
+###Problem 1.4 - Loading and Summarizing the Dataset
+
+(1 point possible)
+What proportion of interviewees are citizens of the United States?
+```{r}
+(table(CPS$Citizenship)["Citizen, Native"]+table(CPS$Citizenship)["Citizen, Naturalized"])/sum(table(CPS$Citizenship))
+```
+
+
+###Problem 1.5 - Loading and Summarizing the Dataset
+
+(1/1 point)
+The CPS differentiates between race (with possible values American Indian, Asian, Black, Pacific Islander, White, or Multiracial) and ethnicity. A number of interviewees are of Hispanic ethnicity, as captured by the Hispanic variable. For which races are there at least 250 interviewees in the CPS dataset of Hispanic ethnicity? (Select all that apply.)
+
+```{r}
+table(CPS$Race[(CPS$Hispanic) == 1])
+
+```
+
+
+
+###Problem 2.1 - Evaluating Missing Values
+
+
+Which variables have at least one interviewee with a missing (NA) value? (Select all that apply.)
+```{r}
+apply(CPS, 2, anyNA)
+
+```
+
+
+Problem 2.2 - Evaluating Missing Values
+
+(1 point possible)
+Often when evaluating a new dataset, we try to identify if there is a pattern in the missing values in the dataset. We will try to determine if there is a pattern in the missing values of the Married variable. The function is.na(CPS$Married) returns a vector of TRUE/FALSE values for whether the Married variable is missing. We can see the breakdown of whether Married is missing based on the reported value of the Region variable with the function table(CPS$Region, is.na(CPS$Married)). Which is the most accurate:
+
+```{r}
+table(CPS$Region, is.na(CPS$Married))
+table(CPS$Sex, is.na(CPS$Married))
+table(CPS$Age, is.na(CPS$Married))
+table(CPS$Citizenship, is.na(CPS$Married))
+
+```
+
+
+###Problem 2.3 - Evaluating Missing Values
+
+As mentioned in the variable descriptions, MetroAreaCode is missing if an interviewee does not live in a metropolitan area. Using the same technique as in the previous question, answer the following questions about people who live in non-metropolitan areas.
+
+How many states had all interviewees living in a non-metropolitan area (aka they have a missing MetroAreaCode value)? For this question, treat the District of Columbia as a state (even though it is not technically a state).
 
