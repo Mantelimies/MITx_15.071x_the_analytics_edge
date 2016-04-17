@@ -382,3 +382,5 @@ As mentioned in the variable descriptions, MetroAreaCode is missing if an interv
 
 How many states had all interviewees living in a non-metropolitan area (aka they have a missing MetroAreaCode value)? For this question, treat the District of Columbia as a state (even though it is not technically a state).
 
+Tes
+
