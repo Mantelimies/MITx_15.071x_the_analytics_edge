@@ -7,7 +7,7 @@ output: html_document
 
 # The Analytics Edge Week 3
 
-## POPULARITY OF MUSIC RECORDS
+# POPULARITY OF MUSIC RECORDS
 
 The music industry has a well-developed market with a global annual revenue around $15 billion. The recording industry is highly competitive and is dominated by three big production companies which make up nearly 82% of the total annual album sales. 
 
@@ -122,67 +122,386 @@ to build our model. Notice that the "." is used in place of enumerating all the 
 However, in our case, we want to exclude some of the variables in our dataset from being used as independent variables ("year", "songtitle", "artistname", "songID", and "artistID"). To do this, we can use the following trick. First define a vector of variable names called nonvars - these are the variables that we won't use in our model.
 
 nonvars = c("year", "songtitle", "artistname", "songID", "artistID")
+```{r}
+nonvars = c("year", "songtitle", "artistname", "songID", "artistID")
+``` 
+
 
 To remove these variables from your training and testing sets, type the following commands in your R console:
 
 SongsTrain = SongsTrain[ , !(names(SongsTrain) %in% nonvars) ]
 
 SongsTest = SongsTest[ , !(names(SongsTest) %in% nonvars) ]
+```{r}
+SongsTrain = SongsTrain[ , !(names(SongsTrain) %in% nonvars) ]
 
+SongsTest = SongsTest[ , !(names(SongsTest) %in% nonvars) ]
+``` 
 Now, use the glm function to build a logistic regression model to predict Top10 using all of the other variables as the independent variables. You should use SongsTrain to build the model.
 
 Looking at the summary of your model, what is the value of the Akaike Information Criterion (AIC)?
 
 
 ```{r}
-
+SongsLog1 = glm(Top10 ~ ., data=SongsTrain, family=binomial)
+summary(SongsLog1)
 ``` 
+
+## Problem 2.3 - Creating Our Prediction Model
+
+Let's now think about the variables in our dataset related to the confidence of the time signature, key and tempo (timesignature_confidence, key_confidence, and tempo_confidence). Our model seems to indicate that these confidence variables are significant (rather than the variables timesignature, key and tempo themselves). What does the model suggest?
+a:  The higher our confidence about time signature, key and tempo, the more likely the song is to be in the Top 10 The higher our confidence about time signature, key and tempo, the more likely the song is to be in the Top 10 
+
+## Problem 2.4 - Creating Our Prediction Model
+
+In general, if the confidence is low for the time signature, tempo, and key, then the song is more likely to be complex. What does Model 1 suggest in terms of complexity?
+a: Mainstream listeners tend to prefer less complex songs Mainstream listeners tend to prefer less complex songs
+
+
+## Problem 2.5 - Creating Our Prediction Model
+
+Songs with heavier instrumentation tend to be louder (have higher values in the variable "loudness") and more energetic (have higher values in the variable "energy").
+
+By inspecting the coefficient of the variable "loudness", what does Model 1 suggest?
+
+a: Mainstream listeners prefer songs with heavy instrumentation 
+By inspecting the coefficient of the variable "energy", do we draw the same conclusions as above?
+a: no
+
+## Problem 3.1 - Beware of Multicollinearity Issues!
+
+
+What is the correlation between the variables "loudness" and "energy" in the training set?
+
+```{r}
+cor(SongsTrain$loudness, SongsTrain$energy)
+``` 
+
+Given that these two variables are highly correlated, Model 1 suffers from multicollinearity. To avoid this issue, we will omit one of these two variables and rerun the logistic regression. In the rest of this problem, we'll build two variations of our original model: Model 2, in which we keep "energy" and omit "loudness", and Model 3, in which we keep "loudness" and omit "energy".
+
+
+## Problem 3.2 - Beware of Multicollinearity Issues!
+
+Create Model 2, which is Model 1 without the independent variable "loudness". This can be done with the following command:
+
+SongsLog2 = glm(Top10 ~ . - loudness, data=SongsTrain, family=binomial)
+
+```{r}
+SongsLog2 = glm(Top10 ~ . - loudness, data=SongsTrain, family=binomial)
+summary(SongsLog2)
+``` 
+We just subtracted the variable loudness. We couldn't do this with the variables "songtitle" and "artistname", because they are not numeric variables, and we might get different values in the test set that the training set has never seen. But this approach (subtracting the variable from the model formula) will always work when you want to remove numeric variables.
+
+Look at the summary of SongsLog2, and inspect the coefficient of the variable "energy". What do you observe?
+
+a: Model 2 suggests that songs with high energy levels tend to be more popular. This contradicts our observation in Model 1
+
+
+## Problem 3.3 - Beware of Multicollinearity Issues!
+
+Now, create Model 3, which should be exactly like Model 1, but without the variable "energy".
+
+Look at the summary of Model 3 and inspect the coefficient of the variable "loudness". Remembering that higher loudness and energy both occur in songs with heavier instrumentation, do we make the same observation about the popularity of heavy instrumentation as we did with Model 2?
+```{r}
+SongsLog3 = glm(Top10 ~ . - energy, data=SongsTrain, family=binomial)
+summary(SongsLog3)
+``` 
+a: yes 
+In the remainder of this problem, we'll just use Model 3.
+## Problem 4.1 - Validating Our Model
+
+
+Make predictions on the test set using Model 3. What is the accuracy of Model 3 on the test set, using a threshold of 0.45? (Compute the accuracy as a number between 0 and 1.)
+```{r}
+testPredict = predict(SongsLog3, newdata = SongsTest, type = "response")
+table(SongsTest$Top10, testPredict > 0.45)
+accuracy = (309+19)/(309+5+40+19)
+accuracy
+``` 
+
+
+## Problem 4.2 - Validating Our Model
+
+
+Let's check if there's any incremental benefit in using Model 3 instead of a baseline model. Given the difficulty of guessing which song is going to be a hit, an easier model would be to pick the most frequent outcome (a song is not a Top 10 hit) for all songs. What would the accuracy of the baseline model be on the test set? (Give your answer as a number between 0 and 1.)
+
 
 
 ```{r}
-
+nrow(SongsTest[SongsTest$Top10 == 0,])/nrow(SongsTest)
 ``` 
 
+
+## Problem 4.3 - Validating Our Model
+
+It seems that Model 3 gives us a small improvement over the baseline model. Still, does it create an edge?
+
+Let's view the two models from an investment perspective. A production company is interested in investing in songs that are highly likely to make it to the Top 10. The company's objective is to minimize its risk of financial losses attributed to investing in songs that end up unpopular.
+
+A competitive edge can therefore be achieved if we can provide the production company a list of songs that are highly likely to end up in the Top 10. We note that the baseline model does not prove useful, as it simply does not label any song as a hit. Let us see what our model has to offer.
+
+How many songs does Model 3 correctly predict as Top 10 hits in 2010 (remember that all songs in 2010 went into our test set), using a threshold of 0.45?
+
+
+a: 19 
+How many non-hit songs does Model 3 predict will be Top 10 hits (again, looking at the test set), using a threshold of 0.45?
+a: 5
+
+
+## Problem 4.4 - Validating Our Model
+
+
+What is the sensitivity of Model 3 on the test set, using a threshold of 0.45?
+```{r}
+19/(19+40)
+``` 
+What is the specificity of Model 3 on the test set, using a threshold of 0.45?
+```{r}
+309/(309+5)
+``` 
+
+
+## Problem 4.5 - Validating Our Model
+
+
+What conclusions can you make about our model? (Select all that apply.)
+a:Model 3 favors specificity over sensitivity. 
+a: Model 3 provides conservative predictions, and predicts that a song will make it to the Top 10 very rarely. So while it detects less than half of the Top 10 songs, we can be very confident in the songs that it does predict to be Top 10 hits.
+
+
+
+# PREDICTING PAROLE VIOLATORS
+
+In many criminal justice systems around the world, inmates deemed not to be a threat to society are released from prison under the parole system prior to completing their sentence. They are still considered to be serving their sentence while on parole, and they can be returned to prison if they violate the terms of their parole.
+
+Parole boards are charged with identifying which inmates are good candidates for release on parole. They seek to release inmates who will not commit additional crimes after release. In this problem, we will build and validate a model that predicts if an inmate will violate the terms of his or her parole. Such a model could be useful to a parole board when deciding to approve or deny an application for parole.
+
+For this prediction task, we will use data from the United States 2004 National Corrections Reporting Program, a nationwide census of parole releases that occurred during 2004. We limited our focus to parolees who served no more than 6 months in prison and whose maximum sentence for all charges did not exceed 18 months. The dataset contains all such parolees who either successfully completed their term of parole during 2004 or those who violated the terms of their parole during that year. The dataset contains the following variables:
+
+
+## Problem 1.1 - Loading the Dataset
+
+
+Load the dataset parole.csv into a data frame called parole, and investigate it using the str() and summary() functions.
+
+How many parolees are contained in the dataset?
+```{r}
+parole = read.csv("parole.csv")
+str(parole)
+summary(parole)
+a: 675
+``` 
+
+
+## Problem 1.2 - Loading the Dataset
+
+
+How many of the parolees in the dataset violated the terms of their parole?
+```{r}
+nrow(parole[parole$violator == 1,])
+``` 
+
+a: 78
+
+## Problem 2.1 - Preparing the Dataset
+
+
+You should be familiar with unordered factors (if not, review the Week 2 homework problem "Reading Test Scores"). Which variables in this dataset are unordered factors with at least three levels? Select all that apply.
+
+a: state, crime
+
+## Problem 2.2 - Preparing the Dataset
+
+In the last subproblem, we identified variables that are unordered factors with at least 3 levels, so we need to convert them to factors for our prediction problem (we introduced this idea in the "Reading Test Scores" problem last week). Using the as.factor() function, convert these variables to factors. Keep in mind that we are not changing the values, just the way R understands them (the values are still numbers).
+
+How does the output of summary() change for a factor variable as compared to a numerical variable?
+```{r}
+parole$state = as.factor(parole$state)
+parole$crime = as.factor(parole$crime)
+summary(parole)
+``` 
+
+a: The output becomes similar to that of the table() function applied to that variable 
+
+
+## Problem 3.1 - Splitting into a Training and Testing Set
+
+To ensure consistent training/testing set splits, run the following 5 lines of code (do not include the line numbers at the beginning):
+
+1) set.seed(144)
+
+2) library(caTools)
+
+3) split = sample.split(parole$violator, SplitRatio = 0.7)
+
+4) train = subset(parole, split == TRUE)
+
+5) test = subset(parole, split == FALSE)
+
+Roughly what proportion of parolees have been allocated to the training and testing sets?
+```{r}
+set.seed(144)
+library(caTools)
+split = sample.split(parole$violator, SplitRatio = 0.7)
+train = subset(parole, split == TRUE)
+test = subset(parole, split == FALSE)
+``` 
+a: 70% to the training set, 30% to the testing set
+
+
+## Problem 3.2 - Splitting into a Training and Testing Set
+
+Now, suppose you re-ran lines [1]-[5] of Problem 3.1. What would you expect?
+a: The exact same training/testing set split as the first execution of [1]-[5] The exact same training/testing set split as the first execution of [1]-[5]
+
+If you instead ONLY re-ran lines [3]-[5], what would you expect?
+a: A different training/testing set split from the first execution of [1]-[5] A different training/testing set split from the first execution of [1]-[5]
+
+If you instead called set.seed() with a different number and then re-ran lines [3]-[5] of Problem 3.1, what would you expect?
+a: A different training/testing set split from the first execution of [1]-[5] A different training/testing set split from the first execution of [1]-[5]
+
+## Problem 4.1 - Building a Logistic Regression Model
+
+If you tested other training/testing set splits in the previous section, please re-run the original 5 lines of code to obtain the original split.
+
+Using glm (and remembering the parameter family="binomial"), train a logistic regression model on the training set. Your dependent variable is "violator", and you should use all of the other variables as independent variables.
+
+What variables are significant in this model? Significant variables should have a least one star, or should have a probability less than 0.05 (the column Pr(>|z|) in the summary output). Select all that apply.
+```{r}
+logParole = glm(violator ~ ., data = train, family = binomial)
+summary (logParole)
+``` 
+
+
+## Problem 4.2 - Building a Logistic Regression Model
+
+
+What can we say based on the coefficient of the multiple.offenses variable?
+
+The following two properties might be useful to you when answering this question:
+
+1) If we have a coefficient c for a variable, then that means the log odds (or Logit) are increased by c for a unit increase in the variable.
+
+2) If we have a coefficient c for a variable, then that means the odds are multiplied by e^c for a unit increase in the variable.
+
+
+
+```{r}
+exp(1.6119919)
+``` 
+
+a: Our model predicts that a parolee who committed multiple offenses has 5.01 times higher odds of being a violator than a parolee who did not commit multiple offenses but is otherwise identical
+
+
+## Problem 4.3 - Building a Logistic Regression Model
+
+Consider a parolee who is male, of white race, aged 50 years at prison release, from the state of Maryland, served 3 months, had a maximum sentence of 12 months, did not commit multiple offenses, and committed a larceny. Answer the following questions based on the model's predictions for this individual. (HINT: You should use the coefficients of your model, the Logistic Response Function, and the Odds equation to solve this problem.)
+
+According to the model, what are the odds this individual is a violator?
+
+```{r}
+odds = exp(-4.2411574+0.3869904+0.8867192+50*-0.0001756+3*-0.1238867+12*0.0802954+0.6837143)
+odds
+``` 
+a: 0.1825687
+
+
+According to the model, what is the probability this individual is a violator?
+```{r}
+p = odds/(1+odds)
+p
+``` 
+a: 0.1543831
+
+
+## Problem 5.1 - Evaluating the Model on the Testing Set
+
+Use the predict() function to obtain the model's predicted probabilities for parolees in the testing set, remembering to pass type="response".
+
+What is the maximum predicted probability of a violation?
+```{r}
+violationProb = predict(logParole, newdata = test, type = "response")
+violationProb[which.max(violationProb)]
+``` 
+
+
+## Problem 5.2 - Evaluating the Model on the Testing Set
+
+In the following questions, evaluate the model's predictions on the test set using a threshold of 0.5.
+
+What is the model's sensitivity?
+
+```{r}
+table(test$violator, violationProb > 0.7)
+sensitivity = (12)/(12+11)
+sensitivity
+
+specificity = 167/(167+12)
+specificity
+
+
+acc = (167+12)/(167+12+11+12)
+acc
+``` 
+
+
+## Problem 5.3 - Evaluating the Model on the Testing Set
+
+What is the accuracy of a simple model that predicts that every parolee is a non-violator?
+
+
+```{r}
+nrow(test[test$violator == 0,])/nrow(test)
+``` 
+
+## Problem 5.4 - Evaluating the Model on the Testing Set
+
+Consider a parole board using the model to predict whether parolees will be violators or not. The job of a parole board is to make sure that a prisoner is ready to be released into free society, and therefore parole boards tend to be particularily concerned about releasing prisoners who will violate their parole. Which of the following most likely describes their preferences and best course of action?
+
+a: The board assigns more cost to a false negative than a false positive, and should therefore use a logistic regression cutoff less than 0.5. The board assigns more cost to a false negative than a false positive, and should therefore use a logistic regression cutoff less than 0.5.
+
+
+## Problem 5.5 - Evaluating the Model on the Testing Set
+
+(1/1 point)
+Which of the following is the most accurate assessment of the value of the logistic regression model with a cutoff 0.5 to a parole board, based on the model's accuracy as compared to the simple baseline model?
+
+a: The model is likely of value to the board, and using a different logistic regression cutoff is likely to improve the model's value. The model is likely of value to the board, and using a different logistic regression cutoff is likely to improve the model's value. - correct
+
+
+
+## Problem 5.6 - Evaluating the Model on the Testing Set
+
+Using the ROCR package, what is the AUC value for the model?
+```{r}
+library (ROCR)
+ROCRpred = prediction(violationProb, test$violator)
+as.numeric(performance(ROCRpred, "auc")@y.values)
+
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+plot(ROCRperf, colorize = T)
+``` 
+
+a: 0.8945834
+
+## Problem 5.7 - Evaluating the Model on the Testing Set
+
+Describe the meaning of AUC in this context.
+
+
+a: The probability the model can correctly differentiate between a randomly selected parole violator and a randomly selected parole non-violator. The probability the model can correctly differentiate between a randomly selected parole violator and a randomly selected parole non-violator.
+
+
+## Problem 6.1 - Identifying Bias in Observational Data
+
+Our goal has been to predict the outcome of a parole decision, and we used a publicly available dataset of parole releases for predictions. In this final problem, we'll evaluate a potential source of bias associated with our analysis. It is always important to evaluate a dataset for possible sources of bias.
+
+The dataset contains all individuals released from parole in 2004, either due to completing their parole term or violating the terms of their parole. However, it does not contain parolees who neither violated their parole nor completed their term in 2004, causing non-violators to be underrepresented. This is called "selection bias" or "selecting on the dependent variable," because only a subset of all relevant parolees were included in our analysis, based on our dependent variable in this analysis (parole violation). How could we improve our dataset to best address selection bias?
+
+a: We should use a dataset tracking a group of parolees from the start of their parole until either they violated parole or they completed their term. We should use a dataset tracking a group of parolees from the start of their parole until either they violated parole or they completed their term.
 ```{r}
 
 ``` 
-
-```{r}
-
-``` 
-
-```{r}
-
-``` 
-
-```{r}
-
-``` 
-
-
-
-
-```{r}
-
-``` 
-
-
-
-
-```{r}
-
-``` 
-
-
-
-
-
-
-
-
-
-
-
 
 ```{r}
 
