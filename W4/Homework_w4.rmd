@@ -1,0 +1,162 @@
+---
+title: '"The Analytics Edge Week 3"'
+author: "Joona Rauhamäki"
+date: "23 kesäkuuta 2016"
+output: html_document
+---
+
+# The Analytics Edge Week 4
+
+#UNDERSTANDING WHY PEOPLE VOTE
+
+In August 2006 three researchers (Alan Gerber and Donald Green of Yale University, and Christopher Larimer of the University of Northern Iowa) carried out a large scale field experiment in Michigan, USA to test the hypothesis that one of the reasons people vote is social, or extrinsic, pressure. To quote the first paragraph of their 2008 research paper:
+
+Among the most striking features of a democratic political system is the participation of millions of voters in elections. Why do large numbers of people vote, despite the fact that ... "the casting of a single vote is of no significance where there is a multitude of electors"? One hypothesis is adherence to social norms. Voting is widely regarded as a citizen duty, and citizens worry that others will think less of them if they fail to participate in elections. Voters' sense of civic duty has long been a leading explanation of vote turnout...
+
+In this homework problem we will use both logistic regression and classification trees to analyze the data they collected.
+
+THE DATA
+
+The researchers grouped about 344,000 voters into different groups randomly - about 191,000 voters were a "control" group, and the rest were categorized into one of four "treatment" groups. These five groups correspond to five binary variables in the dataset.
+
+"Civic Duty" (variable civicduty) group members were sent a letter that simply said "DO YOUR CIVIC DUTY - VOTE!"
+"Hawthorne Effect" (variable hawthorne) group members were sent a letter that had the "Civic Duty" message plus the additional message "YOU ARE BEING STUDIED" and they were informed that their voting behavior would be examined by means of public records.
+"Self" (variable self) group members received the "Civic Duty" message as well as the recent voting record of everyone in that household and a message stating that another message would be sent after the election with updated records.
+"Neighbors" (variable neighbors) group members were given the same message as that for the "Self" group, except the message not only had the household voting records but also that of neighbors - maximizing social pressure.
+"Control" (variable control) group members were not sent anything, and represented the typical voting situation.
+Additional variables include sex (0 for male, 1 for female), yob (year of birth), and the dependent variable voting (1 if they voted, 0 otherwise).
+
+As usual, let's start with emptying the workspace
+```{r}
+rm (list = ls(all=T))
+``` 
+
+## Problem 1.1 - Exploration and Logistic Regression
+
+
+We will first get familiar with the data. Load the CSV file gerber.csv into R. What proportion of people in this dataset voted in this election?
+```{r}
+voters = read.csv("gerber.csv")
+str(voters)
+nrow(voters[which(voters$voting == 1),])/nrow(voters)
+```
+a : 0.3158996
+
+
+## Problem 1.2 - Exploration and Logistic Regression
+
+Which of the four "treatment groups" had the largest percentage of people who actually voted (voting = 1)?
+
+```{r}
+nrow(voters[voters$hawthorne == 1 & voters$voting == 1,])/nrow(voters[voters$hawthorne == 1,])
+tapply(voters$voting, voters$hawthorne, mean)
+tapply(voters$voting, voters$civicduty, mean)
+tapply(voters$voting, voters$neighbors, mean)
+tapply(voters$voting, voters$self,mean)
+tapply(voters$voting, voters$control, mean)
+```
+
+
+## Problem 1.3 - Exploration and Logistic Regression
+
+
+Build a logistic regression model for voting using the four treatment group variables as the independent variables (civicduty, hawthorne, self, and neighbors). Use all the data to build the model (DO NOT split the data into a training set and testing set). Which of the following coefficients are significant in the logistic regression model? Select all that apply.
+
+```{r}
+logVoters = glm(voting ~ civicduty + hawthorne + self + neighbors, data = voters, family = binomial)
+summary(logVoters)
+```
+a: all
+
+## Problem 1.4 - Exploration and Logistic Regression
+
+Using a threshold of 0.3, what is the accuracy of the logistic regression model? (When making predictions, you don't need to use the newdata argument since we didn't split our data.)
+
+```{r}
+pred = predict(logVoters, type = "response")
+table(voters$voting, pred > 0.3)
+(134513+51966)/(134513+51966+100875+56730)
+```
+a: 0.5419578
+
+
+
+
+##Problem 1.5 - Exploration and Logistic Regression
+
+
+Using a threshold of 0.5, what is the accuracy of the logistic regression model?
+```{r}
+table(voters$voting, pred > 0.5)
+(235388)/(235388+108696)
+```
+a: 0.6841004
+
+##Problem 1.6 - Exploration and Logistic Regression
+
+
+Compare your previous two answers to the percentage of people who did not vote (the baseline accuracy) and compute the AUC of the model. What is happening here?
+```{r}
+table(voters$voting)
+baseline = nrow(voters[voters$voting == 0,])/length(voters$voting)
+baseline
+
+library (ROCR)
+ROCRpred = prediction(pred, voters$voting)
+as.numeric(performance(ROCRpred, "auc")@y.values)
+
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+plot(ROCRperf, colorize = T)
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
