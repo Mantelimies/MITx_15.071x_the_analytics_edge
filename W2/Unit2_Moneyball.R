@@ -23,7 +23,7 @@ summary(WinsReg)
 # Quick Question
 # If a baseball team scores 713 runs and allows 614 runs, how many games do we expect the team to win?
 # Using the linear regression model constructed during the lecture, enter the number of games we expect the team to win:
-qq = data.frame(RD = 99)
+qq = data.frame(RD = 713-614)
 predict(WinsReg, newdata =  qq)
 # VIDEO 3
 
@@ -51,4 +51,14 @@ predict (RunsAll, newdata = data.frame(OOBP = 0.297, OSLG = 0.370))
 
 players = read.csv("players.csv", sep = "-")
 predict(RunsReg, newdata = players)
+
+
+# Quick Question 
+#In your R console, create a corresponding rank vector by typing
+
+teamRank = c(1,2,3,3,4,4,4,4,5,5)
+wins2012 = c(94,88,95,88,93,94,98,97,93,94)
+wins2013 = c(97,97,92,93,92,96,94,96,92,90)
+cor(teamRank, wins2012)
+cor(teamRank, wins2013)
 

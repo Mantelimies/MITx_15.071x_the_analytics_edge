@@ -323,6 +323,12 @@ RMSE
 
 Consider two students A and B. They have all variable values the same, except that student A is in grade 11 and student B is in grade 9. What is the predicted reading score of student A minus the predicted reading score of student B?
 
+```{r}
+lmScore$coefficients["grade"]*(11-9)
+
+```
+
+
 ## Problem 3.4 - Interpreting model coefficients
 
 What is the meaning of the coefficient associated with variable raceethAsian?
@@ -528,7 +534,6 @@ First, we need to decide the amount of time to lag the observations. Because the
 To do so, we will use the "zoo" package, which provides a number of helpful methods for time series models. While many functions are built into R, you need to add new packages to use some functions. New packages can be installed and loaded easily in R, and we will do this many times in this class. Run the following two commands to install and load the zoo package. In the first command, you will be prompted to select a CRAN mirror to use for your download. Select a mirror near you geographically.
 
 ```{r}
-
 library(zoo)
 ```
 After installing and loading the zoo package, run the following commands to create the ILILag2 variable in the training set:
