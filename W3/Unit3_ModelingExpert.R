@@ -68,6 +68,11 @@ table(qualityTrain$PoorCare, predictTrain > 0.2)
 54/74
 
 
+#Quick question
+#Sensitivity of matrix 1
+15/(15+10)
+#Specificity of matrix 1
+20/(20+5)
 
 # Video 6
 

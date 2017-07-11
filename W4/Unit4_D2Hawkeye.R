@@ -46,6 +46,8 @@ sum(as.matrix(table(ClaimsTest$bucket2009, ClaimsTest$bucket2008))*PenaltyMatrix
 #Quick question
 mat1 = table(ClaimsTest$bucket2009, rep(1,nrow(ClaimsTest)))
 mat2 = table(rep(1,nrow(ClaimsTest)), ClaimsTest$bucket2009)
+mat1
+mat2
 (122978)/nrow(ClaimsTest)
 
 sum(PenaltyMatrix[,1]*mat1)/nrow(ClaimsTest)
