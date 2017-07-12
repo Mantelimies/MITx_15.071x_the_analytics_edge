@@ -23,7 +23,8 @@ library(rpart.plot)
 # CART model
 StevensTree = rpart(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, method="class", minbucket=25)
 
-prp(StevensTree)plot(StevensTree)
+prp(StevensTree)
+plot(StevensTree)
 
 # Make predictions
 PredictCART = predict(StevensTree, newdata = Test, type = "class")
@@ -110,7 +111,7 @@ cpGrid = expand.grid( .cp = seq(0.01,0.5,0.01))
 
 
 # Perform the cross validation
-train(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, method = "rpart", trControl = numFolds, tuneGrid = cpGrid )
+train(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, method = "rpart", trControl = numFolds, tuneGrid = cpGrid)
 
 # Create a new CART model
 StevensTreeCV = rpart(Reverse ~ Circuit + Issue + Petitioner + Respondent + LowerCourt + Unconst, data = Train, method="class", cp = 0.18)
