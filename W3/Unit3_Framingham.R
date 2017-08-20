@@ -26,6 +26,7 @@ summary(framinghamLog)
 # Predictions on the test set
 predictTest = predict(framinghamLog, type="response", newdata=test)
 
+
 # Confusion matrix with threshold of 0.5
 table(test$TenYearCHD, predictTest > 0.5)
 

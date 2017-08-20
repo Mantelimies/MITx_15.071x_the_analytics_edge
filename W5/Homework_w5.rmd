@@ -1,0 +1,640 @@
+---
+title: "The Analytics Edge Week 5"
+author: "Joona Rauhamäki"
+date: "14 heinäkuuta 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Week 5 Homework
+
+# Detecting vandalism on wikipedia
+
+Wikipedia is a free online encyclopedia that anyone can edit and contribute to. It is available in many languages and is growing all the time. On the English language version of Wikipedia:
+
+There are currently 4.7 million pages.
+There have been a total over 760 million edits (also called revisions) over its lifetime.
+There are approximately 130,000 edits per day.
+One of the consequences of being editable by anyone is that some people vandalize pages. This can take the form of removing content, adding promotional or inappropriate content, or more subtle shifts that change the meaning of the article. With this many articles and edits per day it is difficult for humans to detect all instances of vandalism and revert (undo) them. As a result, Wikipedia uses bots - computer programs that automatically revert edits that look like vandalism. In this assignment we will attempt to develop a vandalism detector that uses machine learning to distinguish between a valid edit and vandalism.
+
+The data for this problem is based on the revision history of the page Language. Wikipedia provides a history for each page that consists of the state of the page at each revision. Rather than manually considering each revision, a script was run that checked whether edits stayed or were reverted. If a change was eventually reverted then that revision is marked as vandalism. This may result in some misclassifications, but the script performs well enough for our needs.
+
+As a result of this preprocessing, some common processing tasks have already been done, including lower-casing and punctuation removal. The columns in the dataset are:
+
+Vandal = 1 if this edit was vandalism, 0 if not.
+Minor = 1 if the user marked this edit as a "minor edit", 0 if not.
+Loggedin = 1 if the user made this edit while using a Wikipedia account, 0 if they did not.
+Added = The unique words added.
+Removed = The unique words removed.
+Notice the repeated use of unique. The data we have available is not the traditional bag of words - rather it is the set of words that were removed or added. For example, if a word was removed multiple times in a revision it will only appear one time in the "Removed" column.
+
+As usual, let's start with emptying the workspace
+```{r}
+rm (list = ls(all=T))
+``` 
+
+## Problem 1.1 - Bags of Words
+
+Load the data wiki.csv with the option stringsAsFactors=FALSE, calling the data frame "wiki". Convert the "Vandal" column to a factor using the command wiki$Vandal = as.factor(wiki$Vandal).
+
+How many cases of vandalism were detected in the history of this page?
+
+
+
+```{r}
+wiki <- read.csv("wiki.csv", stringsAsFactors = F)
+wiki$Vandal = as.factor(wiki$Vandal)
+table(wiki$Vandal)
+```
+
+
+
+## Problem 1.2 - Bags of Words
+
+We will now use the bag of words approach to build a model. We have two columns of textual data, with different meanings. For example, adding rude words has a different meaning to removing rude words. We'll start like we did in class by building a document term matrix from the Added column. The text already is lowercase and stripped of punctuation. So to pre-process the data, just complete the following four steps:
+
+1) Create the corpus for the Added column, and call it "corpusAdded".
+
+2) Remove the English-language stopwords.
+
+3) Stem the words.
+
+4) Build the DocumentTermMatrix, and call it dtmAdded.
+
+If the code length(stopwords("english")) does not return 174 for you, then please run the line of code in this file, which will store the standard stop words in a variable called sw. When removing stop words, use tm_map(corpusAdded, removeWords, sw) instead of tm_map(corpusAdded, removeWords, stopwords("english")).
+
+How many terms appear in dtmAdded?
+
+```{r}
+
+require(tm)
+require(SnowballC)
+
+#Create corpus
+corpusAdded = VCorpus(VectorSource(wiki$Added)) 
+
+#remove stopwords
+corpusAdded = tm_map(corpusAdded, removeWords, stopwords("english"))
+
+# Stem document 
+corpusAdded = tm_map(corpusAdded, stemDocument)
+
+# Create mmatrix
+dtmAdded <- DocumentTermMatrix(corpusAdded)
+dtmAdded
+
+```
+
+## Problem 1.3 - Bags of Words
+
+Filter out sparse terms by keeping only terms that appear in 0.3% or more of the revisions, and call the new matrix sparseAdded. How many terms appear in sparseAdded?
+
+```{r}
+# Remove sparse terms
+sparseAdded = removeSparseTerms(dtmAdded, 0.997)
+sparseAdded
+```
+
+
+## Problem 1.4 - Bags of Words
+
+Convert sparseAdded to a data frame called wordsAdded, and then prepend all the words with the letter A, by using the command:
+
+colnames(wordsAdded) = paste("A", colnames(wordsAdded))
+
+Now repeat all of the steps we've done so far (create a corpus, remove stop words, stem the document, create a sparse document term matrix, and convert it to a data frame) to create a Removed bag-of-words dataframe, called wordsRemoved, except this time, prepend all of the words with the letter R:
+
+colnames(wordsRemoved) = paste("R", colnames(wordsRemoved))
+
+How many words are in the wordsRemoved data frame?
+```{r}
+wordsAdded <- as.data.frame(as.matrix(sparseAdded))
+colnames(wordsAdded) = paste("A", colnames(wordsAdded))
+
+#all the same for removed
+#Create corpus
+corpusRemoved = VCorpus(VectorSource(wiki$Removed)) 
+
+#remove stopwords
+corpusRemoved = tm_map(corpusRemoved, removeWords, stopwords("english"))
+
+# Stem document 
+corpusRemoved = tm_map(corpusRemoved, stemDocument)
+
+# Create mmatrix
+dtmRemoved <- DocumentTermMatrix(corpusRemoved)
+dtmRemoved
+
+#Remove sparse
+sparseRemoved = removeSparseTerms(dtmRemoved, 0.997)
+sparseRemoved
+
+#convert and add letter to word beginning
+wordsRemoved <- as.data.frame(as.matrix(sparseRemoved))
+colnames(wordsRemoved) = paste("R", colnames(wordsRemoved))
+
+wordsRemoved
+
+```
+
+
+## Problem 1.5 - Bags of Words
+
+Combine the two data frames into a data frame called wikiWords with the following line of code:
+
+
+```{r}
+wikiWords = cbind(wordsAdded, wordsRemoved)
+str(wikiWords)
+head(wikiWords)
+summary(wikiWords)
+```
+
+
+The cbind function combines two sets of variables for the same observations into one data frame. Then add the Vandal column (HINT: remember how we added the dependent variable back into our data frame in the Twitter lecture). Set the random seed to 123 and then split the data set using sample.split from the "caTools" package to put 70% in the training set.
+
+What is the accuracy on the test set of a baseline method that always predicts "not vandalism" (the most frequent outcome)?
+
+```{r}
+
+wikiWords$Vandal <- wiki$Vandal
+
+#make the split
+require(caTools)
+
+set.seed(123)
+
+split = sample.split(wikiWords$Vandal, SplitRatio = 0.7)
+
+trainWiki = subset(wikiWords, split==TRUE)
+testWiki = subset(wikiWords, split==FALSE)
+
+table(testWiki$Vandal)
+618/(618+545)
+```
+
+## Problem 1.6 - Bags of Words
+
+Build a CART model to predict Vandal, using all of the other variables as independent variables. Use the training set to build the model and the default parameters (don't set values for minbucket or cp).
+
+What is the accuracy of the model on the test set, using a threshold of 0.5? (Remember that if you add the argument type="class" when making predictions, the output of predict will automatically use a threshold of 0.5.)
+
+
+```{r}
+require(rpart)
+require(rpart.plot)
+
+cartVandal <- rpart(Vandal ~ ., data = trainWiki, method = "class")
+
+predVandal <- predict(cartVandal, newdata = testWiki, type = "class")
+
+
+table(testWiki$Vandal, predVandal)
+(618+12)/(618+12+533)
+
+```
+
+
+## Problem 1.7 - Bags of Words
+
+Plot the CART tree. How many word stems does the CART model use?
+```{r}
+prp(cartVandal)
+```
+
+## Problem 1.8 - Bags of Words
+
+Given the performance of the CART model relative to the baseline, what is the best explanation of these results?
+
+
+a: Although it beats the baseline, bag of words is not very predictive for this problem. correct
+
+
+## Problem 2.1 - Problem-specific Knowledge
+
+We weren't able to improve on the baseline using the raw textual information. More specifically, the words themselves were not useful. There are other options though, and in this section we will try two techniques - identifying a key class of words, and counting words.
+
+The key class of words we will use are website addresses. "Website addresses" (also known as URLs - Uniform Resource Locators) are comprised of two main parts. An example would be "http://www.google.com". The first part is the protocol, which is usually "http" (HyperText Transfer Protocol). The second part is the address of the site, e.g. "www.google.com". We have stripped all punctuation so links to websites appear in the data as one word, e.g. "httpwwwgooglecom". We hypothesize that given that a lot of vandalism seems to be adding links to promotional or irrelevant websites, the presence of a web address is a sign of vandalism.
+
+We can search for the presence of a web address in the words added by searching for "http" in the Added column. The grepl function returns TRUE if a string is found in another string, e.g.
+
+grepl("cat","dogs and cats",fixed=TRUE) # TRUE
+
+grepl("cat","dogs and rats",fixed=TRUE) # FALSE
+
+Create a copy of your dataframe from the previous question:
+
+```{r}
+wikiWords2 = wikiWords
+
+```
+
+
+Make a new column in wikiWords2 that is 1 if "http" was in Added:
+
+Based on this new column, how many revisions added a link?
+
+```{r}
+wikiWords2$HTTP = ifelse(grepl("http",wiki$Added,fixed=TRUE), 1, 0)
+table(wikiWords2$HTTP)
+```
+
+##Problem 2.2 - Problem-Specific Knowledge
+
+In problem 1.5, you computed a vector called "spl" that identified the observations to put in the training and testing sets. Use that variable (do not recompute it with sample.split) to make new training and testing sets:
+
+```{r}
+wikiTrain2 = subset(wikiWords2, split==TRUE)
+
+wikiTest2 = subset(wikiWords2, split==FALSE)
+
+```
+
+Then create a new CART model using this new variable as one of the independent variables.
+
+What is the new accuracy of the CART model on the test set, using a threshold of 0.5?
+
+
+```{r}
+cartVandal2 <- rpart(Vandal ~ ., data = wikiTrain2, method = "class")
+prp(cartVandal2)
+predVandal2 <- predict(cartVandal2, newdata = wikiTest2, type = "class")
+
+table(wikiTest2$Vandal, predVandal2)
+(609+57)/(609+57+9+488)
+```
+
+
+## Problem 2.3 - Problem-Specific Knowledge
+
+Another possibility is that the number of words added and removed is predictive, perhaps more so than the actual words themselves. We already have a word count available in the form of the document-term matrices (DTMs).
+
+Sum the rows of dtmAdded and dtmRemoved and add them as new variables in your data frame wikiWords2 (called NumWordsAdded and NumWordsRemoved) by using the following commands:
+
+What is the average number of words added?
+
+
+```{r}
+wikiWords2$NumWordsAdded = rowSums(as.matrix(dtmAdded))
+
+wikiWords2$NumWordsRemoved = rowSums(as.matrix(dtmRemoved))
+head(wikiWords2)
+
+mean(wikiWords2$NumWordsAdded)
+```
+
+
+## Problem 2.4 - Problem-Specific Knowledge
+
+In problem 1.5, you computed a vector called "spl" that identified the observations to put in the training and testing sets. Use that variable (do not recompute it with sample.split) to make new training and testing sets with wikiWords2. Create the CART model again (using the training set and the default parameters).
+
+What is the new accuracy of the CART model on the test set?
+
+
+```{r}
+
+wikiTrain3 = subset(wikiWords2, split==TRUE)
+
+wikiTest3 = subset(wikiWords2, split==FALSE)
+
+cartVandal3 <- rpart(Vandal ~ ., data = wikiTrain3, method = "class")
+prp(cartVandal3)
+predVandal3 <- predict(cartVandal3, newdata = wikiTest3, type = "class")
+
+table(wikiTest3$Vandal, predVandal3)
+(514+248)/(514+248+104+297)
+```
+
+
+## Problem 3.1 - Using Non-Textual Data
+
+We have two pieces of "metadata" (data about data) that we haven't yet used. Make a copy of wikiWords2, and call it wikiWords3:
+
+Then add the two original variables Minor and Loggedin to this new data frame:
+
+In problem 1.5, you computed a vector called "spl" that identified the observations to put in the training and testing sets. Use that variable (do not recompute it with sample.split) to make new training and testing sets with wikiWords3.
+
+Build a CART model using all the training data. What is the accuracy of the model on the test set?
+
+
+```{r}
+wikiWords3 = wikiWords2
+
+wikiWords3$Minor = wiki$Minor
+wikiWords3$Loggedin = wiki$Loggedin
+
+wikiTrain4 = subset(wikiWords3, split==TRUE)
+
+wikiTest4 = subset(wikiWords3, split==FALSE)
+
+cartVandal4 <- rpart(Vandal ~ ., data = wikiTrain4, method = "class")
+prp(cartVandal4)
+predVandal4 <- predict(cartVandal4, newdata = wikiTest4, type = "class")
+
+table(wikiTest4$Vandal, predVandal4)
+
+(595+241)/(595+241+304+23)
+```
+
+
+
+##Problem 3.2 - Using Non-Textual Data
+
+There is a substantial difference in the accuracy of the model using the meta data. Is this because we made a more complicated model?
+
+Plot the CART tree. How many splits are there in the tree?
+
+```{r}
+prp(cartVandal4)
+```
+
+
+# Automating Reviews in Medicine
+
+The medical literature is enormous. Pubmed, a database of medical publications maintained by the U.S. National Library of Medicine, has indexed over 23 million medical publications. Further, the rate of medical publication has increased over time, and now there are nearly 1 million new publications in the field each year, or more than one per minute.
+
+The large size and fast-changing nature of the medical literature has increased the need for reviews, which search databases like Pubmed for papers on a particular topic and then report results from the papers found. While such reviews are often performed manually, with multiple people reviewing each search result, this is tedious and time consuming. In this problem, we will see how text analytics can be used to automate the process of information retrieval.
+
+The dataset consists of the titles (variable title) and abstracts (variable abstract) of papers retrieved in a Pubmed search. Each search result is labeled with whether the paper is a clinical trial testing a drug therapy for cancer (variable trial). These labels were obtained by two people reviewing each search result and accessing the actual paper if necessary, as part of a literature review of clinical trials testing drug therapies for advanced and metastatic breast cancer.
+
+
+
+## Problem 1.1 - Loading the Data
+
+Load clinical_trial.csv into a data frame called trials (remembering to add the argument stringsAsFactors=FALSE), and investigate the data frame with summary() and str().
+
+IMPORTANT NOTE: Some students have been getting errors like "invalid multibyte string" when performing certain parts of this homework question. If this is happening to you, use the argument fileEncoding="latin1" when reading in the file with read.csv. This should cause those errors to go away.
+
+We can use R's string functions to learn more about the titles and abstracts of the located papers. The nchar() function counts the number of characters in a piece of text. Using the nchar() function on the variables in the data frame, answer the following questions:
+
+How many characters are there in the longest abstract? (Longest here is defined as the abstract with the largest number of characters.)
+
+
+```{r}
+trials = read.csv("clinical_trial.csv", stringsAsFactors = FALSE)
+summary(trials)
+str(trials)
+max(nchar(trials$abstract))
+```
+
+## Problem 1.2 - Loading the Data
+
+How many search results provided no abstract? (HINT: A search result provided no abstract if the number of characters in the abstract field is zero.)
+
+```{r}
+nrow(trials[(nchar(trials$abstract)==0),])
+```
+
+
+## Problem 1.3 - Loading the Data
+
+Find the observation with the minimum number of characters in the title (the variable "title") out of all of the observations in this dataset. What is the text of the title of this article? Include capitalization and punctuation in your response, but don't include the quotes.
+
+```{r}
+trials$title[which.min(nchar(trials$title))]
+```
+
+
+## Problem 2.1 - Preparing the Corpus
+
+Because we have both title and abstract information for trials, we need to build two corpora instead of one. Name them corpusTitle and corpusAbstract.
+
+Following the commands from lecture, perform the following tasks (you might need to load the "tm" package first if it isn't already loaded). Make sure to perform them in this order.
+
+
+```{r}
+require(tm)
+
+#1) Convert the title variable to corpusTitle and the abstract variable to corpusAbstract
+
+corpusTitle <- VCorpus(VectorSource(trials$title))
+corpusAbstract <- VCorpus(VectorSource(trials$abstract))
+
+corpusTitle[[1]]$content
+#2) Convert corpusTitle and corpusAbstract to lowercase.
+
+corpusTitle = tm_map(corpusTitle, content_transformer(tolower))
+corpusAbstract = tm_map(corpusAbstract, content_transformer(tolower))
+
+corpusTitle[[1]]$content
+# 3) Remove the punctuation in corpusTitle and corpusAbstract.
+corpusTitle = tm_map(corpusTitle, removePunctuation)
+corpusAbstract = tm_map(corpusAbstract, removePunctuation)
+
+corpusTitle[[1]]$content
+# 4) Remove the English language stop words from corpusTitle and corpusAbstract.
+
+corpusTitle = tm_map(corpusTitle, removeWords, stopwords("english"))
+corpusAbstract = tm_map(corpusAbstract, removeWords, stopwords("english"))
+
+corpusTitle[[1]]$content
+
+
+# 5) Stem the words in corpusTitle and corpusAbstract (each stemming might take a few minutes).
+
+corpusTitle = tm_map(corpusTitle, stemDocument)
+corpusAbstract = tm_map(corpusAbstract, stemDocument)
+
+corpusTitle[[1]]$content
+
+# 6) Build a document term matrix called dtmTitle from corpusTitle and dtmAbstract from corpusAbstract.
+
+dtmTitle = DocumentTermMatrix(corpusTitle)
+dtmAbstract = DocumentTermMatrix(corpusAbstract)
+
+# 7) Limit dtmTitle and dtmAbstract to terms with sparseness of at most 95% (aka terms that appear in at least 5% of documents).
+dtmTitle = removeSparseTerms(dtmTitle, 0.95)
+dtmAbstract = removeSparseTerms(dtmAbstract, 0.95)
+
+
+
+# 8) Convert dtmTitle and dtmAbstract to data frames (keep the names dtmTitle and dtmAbstract).
+dtmTitle = as.data.frame(as.matrix(dtmTitle))
+
+dtmAbstract = as.data.frame(as.matrix(dtmAbstract))
+
+```
+
+If the code length(stopwords("english")) does not return 174 for you, then please run the line of code in this file, which will store the standard stop words in a variable called sw. When removing stop words, use tm_map(corpusTitle, removeWords, sw) and tm_map(corpusAbstract, removeWords, sw) instead of tm_map(corpusTitle, removeWords, stopwords("english")) and tm_map(corpusAbstract, removeWords, stopwords("english")).
+
+How many terms remain in dtmTitle after removing sparse terms (aka how many columns does it have)?
+
+How many terms remain in dtmAbstract?
+```{r}
+summary(dtmTitle)
+str(dtmAbstract)
+```
+
+## Problem 2.2 - Preparing the Corpus
+
+What is the most likely reason why dtmAbstract has so many more terms than dtmTitle?
+
+a: Abstracts tend to have many more words than titles correct
+
+## Problem 2.3 - Preparing the Corpus
+
+What is the most frequent word stem across all the abstracts? Hint: you can use colSums() to compute the frequency of a word across all the abstracts.
+
+```{r}
+which.max(colSums(dtmAbstract))
+```
+
+
+## Problem 3.1 - Building a model
+
+We want to combine dtmTitle and dtmAbstract into a single data frame to make predictions. However, some of the variables in these data frames have the same names. To fix this issue, run the following commands:
+
+
+```{r}
+colnames(dtmTitle) = paste0("T", colnames(dtmTitle))
+
+colnames(dtmAbstract) = paste0("A", colnames(dtmAbstract))
+head(dtmAbstract)
+```
+
+What was the effect of these functions?
+
+a: Adding the letter T in front of all the title variable names and adding the letter A in front of all the abstract variable names. correct
+
+
+
+## Problem 3.2 - Building a Model
+
+Using cbind(), combine dtmTitle and dtmAbstract into a single data frame called dtm:
+
+As we did in class, add the dependent variable "trial" to dtm, copying it from the original data frame called trials. How many columns are in this combined data frame?
+```{r}
+dtm = cbind(dtmTitle, dtmAbstract)
+dtm$trial = trials$trial
+str(dtm)
+summary(dtm)
+```
+
+
+## Problem 3.3 - Building a Model
+
+Now that we have prepared our data frame, it's time to split it into a training and testing set and to build regression models. Set the random seed to 144 and use the sample.split function from the caTools package to split dtm into data frames named "train" and "test", putting 70% of the data in the training set.
+
+What is the accuracy of the baseline model on the training set? (Remember that the baseline model predicts the most frequent outcome in the training set for all observations.)
+
+
+```{r}
+require(caTools)
+set.seed(144)
+split = sample.split(dtm$trial, SplitRatio = 0.7)
+trainTrial = subset(dtm, split == T)
+testTrial = subset(dtm, split == F)
+
+table(trainTrial$trial)
+1043/(1043+817)
+
+```
+
+
+## Problem 3.4 - Building a Model
+
+Build a CART model called trialCART, using all the independent variables in the training set to train the model, and then plot the CART model. Just use the default parameters to build the model (don't add a minbucket or cp value). Remember to add the method="class" argument, since this is a classification problem.
+
+What is the name of the first variable the model split on?
+
+```{r}
+require(rpart)
+require(rpart.plot)
+
+trialCART = rpart(trial ~ ., data = trainTrial, method = "class")
+prp(trialCART)
+```
+
+
+## Problem 3.5 - Building a Model
+
+Obtain the training set predictions for the model (do not yet predict on the test set). Extract the predicted probability of a result being a trial (recall that this involves not setting a type argument, and keeping only the second column of the predict output). What is the maximum predicted probability for any result?
+
+
+```{r}
+trainPred = predict(trialCART)
+max(trainPred[,2])
+
+```
+
+
+## Problem 3.6 - Building a Model
+
+Without running the analysis, how do you expect the maximum predicted probability to differ in the testing set?
+
+
+a: The maximum predicted probability will likely be exactly the same in the testing set. correct
+
+
+## Problem 3.7 - Building a Model
+
+For these questions, use a threshold probability of 0.5 to predict that an observation is a clinical trial.
+
+What is the training set accuracy of the CART model?
+
+```{r}
+trainPred = predict(trialCART, type = "class")
+table(trainTrial$trial, trainPred)
+(631+441)/nrow(trainTrial)
+441/(441+131)
+631/(631+99)
+```
+
+
+## Problem 4.1 - Evaluating the model on the testing set
+
+Evaluate the CART model on the testing set using the predict function and creating a vector of predicted probabilities predTest.
+
+What is the testing set accuracy, assuming a probability threshold of 0.5 for predicting that a result is a clinical trial?
+
+
+
+```{r}
+trainPred2 = predict(trialCART, newdata = testTrial, type = "class")
+table(testTrial$trial, trainPred2)
+(261+162)/nrow(testTrial)
+
+```
+
+Problem 4.2 - Evaluating the Model on the Testing Set
+
+Using the ROCR package, what is the testing set AUC of the prediction model?
+
+```{r}
+require(ROCR)
+
+testPred = predict(trialCART, newdata = testTrial)[,2]
+predROCR = prediction(testPred, testTrial$trial)
+
+
+performance(predROCR, "auc")@y.values
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

@@ -1,0 +1,274 @@
+---
+title: "Week 6 homework"
+author: "Joona Rauhamäki"
+date: "5 elokuuta 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Week 6 Homework
+# Document Clustering with Daily Kos
+
+
+Document clustering, or text clustering, is a very popular application of clustering algorithms. A web search engine, like Google, often returns thousands of results for a simple query. For example, if you type the search term "jaguar" into Google, around 200 million results are returned. This makes it very difficult to browse or find relevant information, especially if the search term has multiple meanings. If we search for "jaguar", we might be looking for information about the animal, the car, or the Jacksonville Jaguars football team. 
+
+Clustering methods can be used to automatically group search results into categories, making it easier to find relevant results. This method is used in the search engines PolyMeta and Helioid, as well as on FirstGov.gov, the official Web portal for the U.S. government. The two most common algorithms used for document clustering are Hierarchical and k-means. 
+
+In this problem, we'll be clustering articles published on Daily Kos, an American political blog that publishes news and opinion articles written from a progressive point of view. Daily Kos was founded by Markos Moulitsas in 2002, and as of September 2014, the site had an average weekday traffic of hundreds of thousands of visits. 
+
+The file dailykos.csv contains data on 3,430 news articles or blogs that have been posted on Daily Kos. These articles were posted in 2004, leading up to the United States Presidential Election. The leading candidates were incumbent President George W. Bush (republican) and John Kerry (democratic). Foreign policy was a dominant topic of the election, specifically, the 2003 invasion of Iraq. 
+
+Each of the variables in the dataset is a word that has appeared in at least 50 different articles (1,545 words in total). The set of  words has been trimmed according to some of the techniques covered in the previous week on text analytics (punctuation has been removed, and stop words have been removed). For each document, the variable values are the number of times that word appeared in the document. 
+
+## Problem 1.1 - Hierarchical Clustering
+
+Let's start by building a hierarchical clustering model. First, read the data set into R. Then, compute the distances (using method="euclidean"), and use hclust to build the model (using method="ward.D"). You should cluster on all of the variables.
+
+Running the dist function will probably take you a while. Why? Select all that apply.
+
+
+```{r}
+blog <- read.csv("dailykos.csv")
+str(blog)
+
+distances = dist(blog, method = "euclidean")
+kosHierClust = hclust(distances, method="ward.D")
+```
+
+
+
+## Problem 1.2 - Hierarchical Clustering
+
+Plot the dendrogram of your hierarchical clustering model. Just looking at the dendrogram, which of the following seem like good choices for the number of clusters? Select all that apply.
+
+```{r}
+plot(kosHierClust)
+```
+
+
+#Problem 1.4 - Hierarchical Clustering
+
+Let's pick 7 clusters. This number is reasonable according to the dendrogram, and also seems reasonable for the application. Use the cutree function to split your data into 7 clusters.
+
+Now, we don't really want to run tapply on every single variable when we have over 1,000 different variables. Let's instead use the subset function to subset our data by cluster. Create 7 new datasets, each containing the observations from one of the clusters.
+
+How many observations are in cluster 3?
+Which cluster has the most observations?
+
+
+```{r}
+kosClusterCut <- cutree(kosHierClust, k = 7) 
+table(kosClusterCut)
+
+hierCluster = split(blog, kosClusterCut)
+str(hierCluster)
+hierCluster[[1]]
+```
+
+
+
+##Problem 1.5 - Hierarchical Clustering
+
+Instead of looking at the average value in each variable individually, we'll just look at the top 6 words in each cluster. To do this for cluster 1, type the following in your R console (where "HierCluster1" should be replaced with the name of your first cluster subset):
+
+
+```{r}
+tail(sort(colMeans(hierCluster[[1]])))
+```
+This computes the mean frequency values of each of the words in cluster 1, and then outputs the 6 words that occur the most frequently. The colMeans function computes the column (word) means, the sort function orders the words in increasing order of the mean values, and the tail function outputs the last 6 words listed, which are the ones with the largest column means.
+
+What is the most frequent word in this cluster, in terms of average value? Enter the word exactly how you see it in the output:
+
+
+
+##Problem 1.6 - Hierarchical Clustering
+
+Now repeat the command given in the previous problem for each of the other clusters, and answer the following questions.
+
+Which words best describe cluster 2?
+
+```{r}
+tail(sort(colMeans(hierCluster[[2]])))
+tail(sort(colMeans(hierCluster[[3]])))
+tail(sort(colMeans(hierCluster[[4]])))
+tail(sort(colMeans(hierCluster[[5]])))
+tail(sort(colMeans(hierCluster[[6]])))
+tail(sort(colMeans(hierCluster[[7]])))
+
+lapply(1:7, function(x) tail(sort(colMeans(hierCluster[[x]]))))
+
+```
+
+##Problem 2.1 - K-Means Clustering
+
+Now, run k-means clustering, setting the seed to 1000 right before you run the kmeans function. Again, pick the number of clusters equal to 7. You don't need to add the iters.max argument.
+
+Subset your data into the 7 clusters (7 new datasets) by using the "cluster" variable of your kmeans output.
+
+How many observations are in Cluster 3?
+
+
+```{r}
+set.seed(1000)
+KmeansCluster = kmeans(blog, centers=7)
+str(KmeansCluster)
+table(KmeansCluster$cluster)
+
+KmeansClusterSplitted = split(blog, KmeansCluster$cluster)
+str(KmeansClusterSplitted)
+
+
+```
+
+
+##Problem 2.2 - K-Means Clustering
+
+Now, output the six most frequent words in each cluster, like we did in the previous problem, for each of the k-means clusters.
+
+Which k-means cluster best corresponds to the Iraq War?
+```{r}
+lapply(1:7, function(x) tail(sort(colMeans(KmeansClusterSplitted[[x]]))))
+```
+
+##Problem 2.3 - K-Means Clustering
+
+For the rest of this problem, we'll ask you to compare how observations were assigned to clusters in the two different methods. Use the table function to compare the cluster assignment of hierarchical clustering to the cluster assignment of k-means clustering.
+
+Which Hierarchical Cluster best corresponds to K-Means Cluster 2?
+
+```{r}
+table(kosClusterCut, KmeansCluster$cluster)
+```
+
+## Market Segmentation for Airlines
+
+
+Market segmentation is a strategy that divides a broad target market of customers into smaller, more similar groups, and then designs a marketing strategy specifically for each group. Clustering is a common technique for market segmentation since it automatically finds similar groups given a data set. 
+
+In this problem, we'll see how clustering can be used to find similar groups of customers who belong to an airline's frequent flyer program. The airline is trying to learn more about its customers so that it can target different customer segments with different types of mileage offers. 
+
+The file AirlinesCluster.csv contains information on 3,999 members of the frequent flyer program. This data comes from the textbook "Data Mining for Business Intelligence," by Galit Shmueli, Nitin R. Patel, and Peter C. Bruce. For more information, see the website for the book.
+
+There are seven different variables in the dataset, described below:
+
+Balance = number of miles eligible for award travel
+QualMiles = number of miles qualifying for TopFlight status
+BonusMiles = number of miles earned from non-flight bonus transactions in the past 12 months
+BonusTrans = number of non-flight bonus transactions in the past 12 months
+FlightMiles = number of flight miles in the past 12 months
+FlightTrans = number of flight transactions in the past 12 months
+DaysSinceEnroll = number of days since enrolled in the frequent flyer program
+
+
+##Problem 1.1 - Normalizing the Data
+
+Read the dataset AirlinesCluster.csv into R and call it "airlines".
+
+Looking at the summary of airlines, which TWO variables have (on average) the smallest values?
+
+```{r}
+airlines = read.csv("AirlinesCluster.csv")
+summary(airlines)
+```
+
+##Problem 1.2 - Normalizing the Data
+
+In this problem, we will normalize our data before we run the clustering algorithms. Why is it important to normalize the data before clustering?
+
+a: If we don't normalize the data, the clustering will be dominated by the variables that are on a larger scale.
+
+
+##P roblem 1.3 - Normalizing the Data
+
+Let's go ahead and normalize our data. You can normalize the variables in a data frame by using the preProcess function in the "caret" package. You should already have this package installed from Week 4, but if not, go ahead and install it with install.packages("caret"). Then load the package with library(caret).
+```{r}
+library(caret)
+```
+
+
+Now, create a normalized data frame called "airlinesNorm" by running the following commands:
+
+```{r}
+preproc = preProcess(airlines)
+
+airlinesNorm = predict(preproc, airlines)
+
+summary(airlinesNorm)
+
+
+```
+
+The first command pre-processes the data, and the second command performs the normalization. If you look at the summary of airlinesNorm, you should see that all of the variables now have mean zero. You can also see that each of the variables has standard deviation 1 by using the sd() function.
+
+In the normalized data, which variable has the largest maximum value?
+
+
+
+## Problem 2.1 - Hierarchical Clustering
+
+Compute the distances between data points (using euclidean distance) and then run the Hierarchical clustering algorithm (using method="ward.D") on the normalized data. It may take a few minutes for the commands to finish since the dataset has a large number of observations for hierarchical clustering.
+
+Then, plot the dendrogram of the hierarchical clustering process. Suppose the airline is looking for somewhere between 2 and 10 clusters. According to the dendrogram, which of the following is NOT a good choice for the number of clusters?
+
+
+
+```{r}
+distances = dist(airlinesNorm, method="euclidean")
+hierClust = hclust(distances, method="ward.D")
+
+plot(hierClust)
+```
+
+
+
+Problem 2.2 - Hierarchical Clustering
+
+Suppose that after looking at the dendrogram and discussing with the marketing department, the airline decides to proceed with 5 clusters. Divide the data points into 5 clusters by using the cutree function. How many data points are in Cluster 1?
+
+
+```{r}
+clusterGroups = cutree(hierClust, k = 5)
+table(clusterGroups)
+```
+
+
+## Problem 2.3 - Hierarchical Clustering
+
+Now, use tapply to compare the average values in each of the variables for the 5 clusters (the centroids of the clusters). You may want to compute the average values of the unnormalized data so that it is easier to interpret. You can do this for the variable "Balance" with the following command:
+
+tapply(airlines$Balance, clusterGroups, mean)
+```{r}
+lapply(split(airlines, clusterGroups), colMeans)
+```
+
+
+
+## Problem 3.1 - K-Means Clustering
+
+Now run the k-means clustering algorithm on the normalized data, again creating 5 clusters. Set the seed to 88 right before running the clustering algorithm, and set the argument iter.max to 1000.
+
+How many clusters have more than 1,000 observations?
+
+```{r}
+set.seed(88)
+kmeansClust = kmeans(airlinesNorm, centers=5, iter.max=1000)
+table(kmeansClust$cluster)
+```
+
+
+#Problem 3.2 - K-Means Clustering
+1 point possible (graded)
+Now, compare the cluster centroids to each other either by dividing the data points into groups and then using tapply, or by looking at the output of kmeansClust$centers, where "kmeansClust" is the name of the output of the kmeans function. (Note that the output of kmeansClust$centers will be for the normalized data. If you want to look at the average values for the unnormalized data, you need to use tapply like we did for hierarchical clustering.)
+
+Do you expect Cluster 1 of the K-Means clustering output to necessarily be similar to Cluster 1 of the Hierarchical clustering output?
+```{r}
+
+```
+
+```{r}
+
+```
+
